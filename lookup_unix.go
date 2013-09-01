@@ -25,6 +25,14 @@ static int mygetgrgid_r(int gid, struct group *grp,
 static char **next_mem(char **mem) {
 	return ++mem;
 }
+
+static int member_count(char **mem) {
+	int c = 0;
+	for (; *mem; ++mem) {
+		++c;
+	}
+	return c;
+}
 */
 import "C"
 
@@ -91,11 +99,16 @@ func lookupUnix(gid int, groupname string, lookupByName bool) (*Group, error) {
 		}
 	}
 
-	members := make([]string, 0)
+	var members []string
 	if grp.gr_mem != nil {
+		members = make([]string, C.member_count(grp.gr_mem))
+		i := 0
 		for mem := grp.gr_mem; *mem != nil; mem = C.next_mem(mem) {
-			members = append(members, C.GoString(*mem))
+			members[i] = C.GoString(*mem)
+			i += 1
 		}
+	} else {
+		members = make([]string, 0)
 	}
 	g := &Group{
 		Gid:     strconv.Itoa(int(grp.gr_gid)),
